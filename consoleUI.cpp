@@ -19,20 +19,6 @@ int ConsoleUI::readInt(const std::string& prompt, int minVal, int maxVal) {
     }
 }
 
-double ConsoleUI::readDouble(const std::string& prompt, double minVal) {
-    while (true) {
-        std::cout << prompt;
-        std::string line;
-        if (!std::getline(std::cin, line)) return minVal;
-        try {
-            size_t pos;
-            double val = std::stod(line, &pos);
-            if (pos == line.length() && val >= minVal) return val;
-        } catch (...) {}
-        std::cout << "  [Ошибка ввода] Введите число (не меньше " << minVal << ").\n";
-    }
-}
-
 std::string ConsoleUI::readNonEmptyString(const std::string& prompt) {
     while (true) {
         std::cout << prompt;
@@ -85,17 +71,32 @@ void ConsoleUI::handleCreateOrder() {
     std::string name = readNonEmptyString("Введите имя клиента: ");
     std::string phone = readNonEmptyString("Введите телефон клиента: ");
     std::string address = readNonEmptyString("Введите адрес доставки (или адрес ПВЗ): ");
+    if (!std::cin) return;
 
-    Order& order = service_.createOrder(name, phone, address);
+    const auto& products = service_.getProducts();
+    std::cout << "\nДоступные товары:\n" << std::fixed << std::setprecision(2);
+    for (std::size_t i = 0; i < products.size(); ++i) {
+        const auto& product = products[i];
+        std::cout << i + 1 << ". " << product.name << " — " << product.unitPrice
+                  << " руб./шт. | На складе: " << product.stockQuantity << " шт.\n";
+    }
 
     int itemCount = readInt("Сколько позиций добавить в заказ? (1-20): ", 1, 20);
+    if (!std::cin) return;
+
+    std::vector<std::pair<std::size_t, int>> selections;
     for (int i = 1; i <= itemCount; ++i) {
         std::cout << "\n--- Позиция #" << i << " ---\n";
-        std::string itemName = readNonEmptyString("Название товара: ");
+        int productNumber = readInt("Введите номер товара: ", 1, static_cast<int>(products.size()));
+        if (!std::cin) return;
+
         int qty = readInt("Количество (шт.): ", 1, 10000);
-        double price = readDouble("Цена за единицу (руб.): ", 1.0);
-        order.addItem(OrderItem(itemName, qty, price));
+        if (!std::cin) return;
+
+        selections.emplace_back(productNumber - 1, qty);
     }
+
+    Order& order = service_.createOrder(name, phone, address, selections);
 
     std::cout << "\n[Успешно] Заказ #" << order.getId() << " создан!\n";
     printOrderDetails(order);

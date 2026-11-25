@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/levorsa/lab_oop_1/delivery_app'
+relocations:     []
+...

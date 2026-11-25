@@ -160,16 +160,43 @@ void Order::changeStatus(OrderStatus newStatus) {
     status_ = newStatus;
 }
 
-// --- Реализация DeliveryService ---
 DeliveryService::DeliveryService() {
     couriers_.push_back(std::make_shared<Courier>(1, "Иван Быстров", "+7 (900) 111-22-33"));
     couriers_.push_back(std::make_shared<Courier>(2, "Алексей Скороходов", "+7 (900) 444-55-66"));
     couriers_.push_back(std::make_shared<Courier>(3, "Мария Ветрова", "+7 (900) 777-88-99"));
+    products_ = {
+        {"Блокнот", 250.0, 20},
+        {"Термокружка", 800.0, 10},
+        {"Рюкзак", 2400.0, 5}
+    };
 }
 
-Order& DeliveryService::createOrder(const std::string& customerName, const std::string& customerPhone, const std::string& address) {
-    Customer customer(nextCustomerId_++, customerName, customerPhone);
-    orders_.emplace_back(nextOrderId_++, std::move(customer), address);
+Order& DeliveryService::createOrder(const std::string& customerName, const std::string& customerPhone,
+                                    const std::string& address,
+                                    const std::vector<std::pair<std::size_t, int>>& selections) {
+    Customer customer(nextCustomerId_, customerName, customerPhone);
+    Order order(nextOrderId_, std::move(customer), address);
+    std::vector<int> requestedQuantities(products_.size(), 0);
+
+    for (const auto& [productIndex, quantity] : selections) {
+        const auto& product = products_.at(productIndex);
+        int& requested = requestedQuantities[productIndex];
+        int available = product.stockQuantity - requested;
+        if (quantity > available) {
+            throw std::invalid_argument("Недостаточно товара «" + product.name +
+                                        "». Доступно для этой позиции: " + std::to_string(available) +
+                                        " шт., запрошено: " + std::to_string(quantity) + " шт.");
+        }
+        order.addItem(OrderItem(product.name, quantity, product.unitPrice));
+        requested += quantity;
+    }
+
+    orders_.push_back(std::move(order));
+    for (std::size_t i = 0; i < products_.size(); ++i) {
+        products_[i].stockQuantity -= requestedQuantities[i];
+    }
+    ++nextOrderId_;
+    ++nextCustomerId_;
     return orders_.back();
 }
 

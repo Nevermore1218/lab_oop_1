@@ -3,8 +3,9 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <utility>
 
-// --- Участники ---
+// Участники 
 class Person {
 protected:
     int id_;
@@ -39,7 +40,7 @@ public:
     std::string getRoleDescription() const override;
 };
 
-// --- Позиция заказа ---
+//  Позиция заказа
 class OrderItem {
 private:
     std::string name_;
@@ -55,7 +56,7 @@ public:
     double getTotalPrice() const { return quantity_ * unitPrice_; }
 };
 
-// --- Способы доставки ---
+//  Способы доставки 
 class DeliveryMethod {
 public:
     virtual ~DeliveryMethod() = default;
@@ -89,7 +90,7 @@ public:
     bool requiresCourier() const override;
 };
 
-// --- Заказ и Статусы ---
+//  Заказ и Статусы
 enum class OrderStatus {
     Created,
     Processing,
@@ -132,21 +133,32 @@ public:
     void changeStatus(OrderStatus newStatus);
 };
 
-// --- Сервис управления заказами ---
+struct Product {
+    std::string name;
+    double unitPrice;
+    int stockQuantity;
+};
+
+
 class DeliveryService {
 private:
     std::vector<Order> orders_;
     std::vector<std::shared_ptr<Courier>> couriers_;
+    std::vector<Product> products_;
     int nextOrderId_ = 1;
     int nextCustomerId_ = 1;
 
 public:
     DeliveryService();
 
-    Order& createOrder(const std::string& customerName, const std::string& customerPhone, const std::string& address);
+    Order& createOrder(const std::string& customerName, const std::string& customerPhone,
+                       const std::string& address,
+                       const std::vector<std::pair<std::size_t, int>>& selections = {});
     const std::vector<Order>& getOrders() const { return orders_; }
     Order& findOrderById(int orderId);
 
     const std::vector<std::shared_ptr<Courier>>& getCouriers() const { return couriers_; }
     std::shared_ptr<Courier> findCourierById(int courierId);
+
+    const std::vector<Product>& getProducts() const { return products_; }
 };
